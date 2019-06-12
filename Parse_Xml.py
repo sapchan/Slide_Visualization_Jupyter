@@ -5,17 +5,36 @@ import openslide as ops
 from PIL import Image, ImageDraw, ImageColor
 import timeit
 import cv2
+"""
+So the most important function here is create_mask_for_color
 
+    Functions:
+        print_all_colors: No Input, No Output
+        
+        get_all_regions: Inputs -> int Aperio_ImageScope_Color
+                        Outputs -> list XML_tree
+        
+        get_number_of_regions_in_each_annotation_group: Inputs -> int Aperio_ImageScope_Color
+                                                       Outputs -> None
+
+        place_points_in_dict_per_region: Inputs -> int Aperio_ImageScope_Color
+                                        Outputs -> dict with structure [int region #]: np.array([x1,y1,x2,y2,...])
+
+        create_mask_for_color: Inputs -> int Aperio_ImageScope_Color
+                                      -> String Image_File_Path
+                              Outputs -> np.array Binary Mask
+
+"""
 class Parse_Xml():
     def __init__(self, xmlPath):
         infile = open(xmlPath,"r")
         contents = infile.read()
         self.soup = BeautifulSoup(contents,'lxml')
 #        self.print_all_colors()
-        startTime = timeit.default_timer()
-        self.create_mask_for_color(255,'examples/36724.svs')
-        endTime = timeit.default_timer()
-        print('Time: ', endTime - startTime)
+#        startTime = timeit.default_timer()
+#        self.create_mask_for_color(255,'examples/36724.svs')
+#        endTime = timeit.default_timer()
+#        print('Time: ', endTime - startTime)
 #        dict_regions = self.place_points_in_dict_per_region(8454143)
 #        for key,val in dict_regions.items():
 #            print(val)

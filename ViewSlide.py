@@ -5,9 +5,9 @@ from AppKit import NSScreen
 
 class ViewSlide():
     
-    cur_x = 3000
-    cur_y = 13000
-    zoom_level = 500
+    cur_x = 1
+    cur_y = 1
+    zoom_level = 5000
 
     click_x = cur_x
     click_y = cur_x
@@ -41,7 +41,7 @@ class ViewSlide():
         return slide
 
     def getRegion(self):
-        if self.zoom_level < 2000:
+        if self.zoom_level < 1500:
             img = np.array(self.slide.read_region((self.cur_x,self.cur_y),0,(self.zoom_level,self.zoom_level)))
         else:
             img = np.array(self.slide.read_region((self.cur_x,self.cur_y),1,(self.zoom_level,self.zoom_level)))
@@ -133,3 +133,5 @@ class ViewSlide():
             self.click_x = int(w/2)
             self.click_y = int(h/2)+moveBy
             self.img = self.refitToScreenSize(self.updateRegion(self.click_x,self.click_y))
+
+ViewSlide('examples/38532.svs')

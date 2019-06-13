@@ -24,6 +24,9 @@ So the most important function here is create_mask_for_color
                                       -> String Image_File_Path
                               Outputs -> np.array Binary Mask
 
+        extract_ROI: Inputs -> int Aperio_ImageScope_Color
+                    Outputs -> np.array BGR Image
+
 """
 class Parse_Xml():
     def __init__(self, xmlPath, svsPath):

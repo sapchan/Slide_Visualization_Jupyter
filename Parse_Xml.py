@@ -126,7 +126,7 @@ class Parse_Xml():
             y = y + int(slide.properties['openslide.bounds-y'])
         except:
             print('No Bounds Detected on Image')
-            
+
         roi = np.array(slide.read_region((x,y),0,(w,h)))
 
         # take the bitwise and operation to get only the desired ROI

@@ -7,21 +7,24 @@ import cv2
 from Parse_Xml import Parse_Xml
 
 class Adaptive_MPP():
-    def __init__(self, xmlPath, svsPath, color, patch_size):
+    def __init__(self, xmlPath, svsPath, color, patch_size, mag):
         self.pxml = Parse_Xml(xmlPath,svsPath)
         self.xmlPath = xmlPath
         self.svsPath = svsPath
         self.color = color
         self.patch_size = patch_size
         self.dict_mag_level = self.buildDictionary()
+        self.mag = mag
+        assert (float(self.mag) in self.dict_mag_level), 'Please Choose Valid Magnification'
+        self.roi = self.extract_roi()
 
-    def extract_roi(self,mag):
-        assert (float(mag) in self.dict_mag_level), 'Please Choose Valid Magnification'
+
+    def extract_roi(self):
         # get useful information
-        start_col,start_row,end_col,end_row = self.find_tile_in_dz(mag)
+        start_col,start_row,end_col,end_row = self.find_tile_in_dz()
         slide = ops.open_slide(self.svsPath)
         dz = deepzoom.DeepZoomGenerator(slide,tile_size=self.patch_size,overlap=0, limit_bounds=True)
-        level = self.dict_mag_level[mag]
+        level = self.dict_mag_level[self.mag]
 
         #initialize empty array the size of the ROI we need
         w = (end_col - start_col) * self.patch_size
@@ -40,21 +43,19 @@ class Adaptive_MPP():
         
         return io
 
-    def find_tile_in_dz(self, mag):
-        assert (float(mag) in self.dict_mag_level), 'Please Choose Valid Magnification'
+    def find_tile_in_dz(self):
         # get useful information
-        (min_x, min_y, max_x, max_y) = self.get_bounding_box_around_mask(self.color,mag)
+        (min_x, min_y, max_x, max_y) = self.get_bounding_box_around_mask(self.color)
 
         # get the start tile and end tile information
-        start_col = np.divmod(min_x, self.patch_size)
-        start_row = np.divmod(min_y,self.patch_size)
-        end_col = np.divmod(max_x,self.patch_size)
-        end_row = np.divmod(max_y,self.patch_size)
+        start_col = np.divmod(min_x, self.patch_size)[0]
+        start_row = np.divmod(min_y,self.patch_size)[0]
+        end_col = np.divmod(max_x,self.patch_size)[0]+1
+        end_row = np.divmod(max_y,self.patch_size)[0]+1
         return (start_col,start_row,end_col,end_row)
 
 
-    def get_slide_tile_information(self, mag):
-        assert (float(mag) in self.dict_mag_level), 'Please Choose Valid Magnification'
+    def get_slide_tile_information(self):
         slide = ops.open_slide(self.svsPath)
         dz = deepzoom.DeepZoomGenerator(slide,tile_size=self.patch_size,overlap=0, limit_bounds=True)
         level = self.dict_mag_level[mag]
@@ -71,17 +72,15 @@ class Adaptive_MPP():
         dict_level_mag_correspondence = {}
         for i in reversed(range(0,levels)):
             dict_level_mag_correspondence[max_mag/counter] = i
+            counter = counter+1
         return dict_level_mag_correspondence
 
-    def get_bounding_box_around_mask(self,color,mag):
-        # make sure that the magnification is actually in DeepZoom's built in stuff
-        assert (float(mag) in self.dict_mag_level), 'Please Choose Valid Magnification'
-
+    def get_bounding_box_around_mask(self,color):
         # if so, then determine how much to resize things by for the bounding box
         slide = ops.open_slide(self.svsPath)
         dz = deepzoom.DeepZoomGenerator(slide,tile_size=self.patch_size,overlap=0, limit_bounds=True)
         max_mag = int(slide.properties['openslide.objective-power'])
-        resize_factor = float(mag/max_mag)
+        resize_factor = float(self.mag/max_mag)
 
         # determine the original bounding box from the annotation
         regions = self.pxml.get_all_regions(color)
@@ -92,10 +91,18 @@ class Adaptive_MPP():
                 all_x = np.append(all_x,int(float(each_vertex.get('x'))))
                 all_y = np.append(all_y,int(float(each_vertex.get('y'))))
 
+        all_x = all_x * resize_factor
+        all_y = all_y * resize_factor
         # apply resize factor
-        min_x = int(np.min(all_x) * resize_factor)
-        max_x = int(np.max(all_x) * resize_factor)
-        min_y = int(np.min(all_y) * resize_factor)
-        max_y = int(np.max(all_y) * resize_factor)
+        min_x = int(np.min(all_x))
+        max_x = int(np.max(all_x))
+        min_y = int(np.min(all_y))
+        max_y = int(np.max(all_y))
 
+        print(min_x, min_y, max_x, max_y)
         return (min_x, min_y, max_x, max_y)
+
+app = Adaptive_MPP("examples/36724.xml","examples/36724.svs",65535,256, 5)
+roi = app.roi
+new_im = Image.fromarray(roi)
+new_im.show()

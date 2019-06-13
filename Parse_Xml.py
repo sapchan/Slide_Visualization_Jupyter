@@ -75,10 +75,15 @@ class Parse_Xml():
     def create_mask_for_color(self,color):
         dict_regions = self.place_points_in_dict_per_region(color)
         slide = ops.open_slide(self.svsPath)
-        (w, h) = slide.dimensions
-        print((w,h))
+#        (w, h) = slide.dimensions
+#        print((w,h))
+        (min_x, min_y, max_x, max_y) = self.get_bounding_box_around_mask(color)
+        w = max_x - min_x
+        h = max_y - min_y
         img = Image.new('L',(w,h),0)
         for key,val in dict_regions.items():
+            val[0::2] = val[0::2] - min_x
+            val[1::2] = val[1::2] - min_y
             ImageDraw.Draw(img).polygon(val.tolist(),outline=1,fill=1)
         img = np.array(img)
         return img
@@ -105,20 +110,52 @@ class Parse_Xml():
         # next extract the max using the annotation
         mask = self.create_mask_for_color(color)
 
+        # So that you don't have to re-run create_mask_for_color
+        self.bm = mask
+
         # load the image using openslide
         x = min_x
         y = min_y
         w = max_x - min_x
         h = max_y - min_y
         slide = ops.open_slide(self.svsPath)
-        roi = np.array(slide.read_region((x,y),0,(w,h)))
 
-        # crop the mask to just the area we need
-        mask = mask[min_y:max_y,min_x:max_x]
+        # Some slides tend to have a bounds
+        try:
+            x = x + int(slide.properties['openslide.bounds-x'])
+            y = y + int(slide.properties['openslide.bounds-y'])
+        except:
+            print('No Bounds Detected on Image')
+            
+        roi = np.array(slide.read_region((x,y),0,(w,h)))
 
         # take the bitwise and operation to get only the desired ROI
         res = cv2.bitwise_and(roi,roi, mask = mask)
         return res
+        
+    def refitToScreenSize(self,img):
+#        width_screen = NSScreen.mainScreen().frame().size.width
+#        height_screen = NSScreen.mainScreen().frame().size.height
+        width_screen = 1280
+        height_screen = 800
+        width, height, channel = img.shape
+       
+        screen_size = np.array((width_screen,height_screen))
+        image_size = np.array((width,height))
+        
+        resize_factor = screen_size[np.argmin(screen_size)]/image_size[np.argmin(screen_size)]
+        resize_factor = resize_factor*.8
+        newWidth,newHeight = image_size[0]*resize_factor, image_size[1]*resize_factor
+
+        img = cv2.resize(img,(int(newWidth),int(newHeight)))
+        return img
 
         
-#Parse_Xml("examples/36724.xml")
+#pxml = Parse_Xml("examples/GLEE029.xml","examples/GLEE029.scn")
+#startTime = timeit.default_timer()
+#ROI = pxml.extract_ROI(65280)
+#stopTime = timeit.default_timer()
+#print("Time: ", stopTime - startTime)
+#resized_ROI = pxml.refitToScreenSize(ROI)
+#new_im = Image.fromarray(resized_ROI)
+#new_im.show()

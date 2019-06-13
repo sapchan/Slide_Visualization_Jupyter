@@ -14,6 +14,7 @@ class Adaptive_MPP():
         self.color = color
         self.patch_size = patch_size
         self.dict_mag_level = self.buildDictionary()
+        print(self.dict_mag_level)
         self.mag = mag
         assert (float(self.mag) in self.dict_mag_level), 'Please Choose Valid Magnification'
         self.roi = self.extract_roi()
@@ -25,7 +26,7 @@ class Adaptive_MPP():
         slide = ops.open_slide(self.svsPath)
         dz = deepzoom.DeepZoomGenerator(slide,tile_size=self.patch_size,overlap=0, limit_bounds=True)
         level = self.dict_mag_level[self.mag]
-
+        print("level: ", level)
         #initialize empty array the size of the ROI we need
         w = (end_col - start_col) * self.patch_size
         h = (end_row - start_row) * self.patch_size
@@ -46,12 +47,14 @@ class Adaptive_MPP():
     def find_tile_in_dz(self):
         # get useful information
         (min_x, min_y, max_x, max_y) = self.get_bounding_box_around_mask(self.color)
-
+        print(min_x, min_y, max_x, max_y)
         # get the start tile and end tile information
-        start_col = np.divmod(min_x, self.patch_size)[0]
+        start_col = np.divmod(min_x,self.patch_size)[0]
         start_row = np.divmod(min_y,self.patch_size)[0]
         end_col = np.divmod(max_x,self.patch_size)[0]+1
         end_row = np.divmod(max_y,self.patch_size)[0]+1
+
+        print(start_col,start_row,end_col,end_row)
         return (start_col,start_row,end_col,end_row)
 
 
@@ -72,7 +75,7 @@ class Adaptive_MPP():
         dict_level_mag_correspondence = {}
         for i in reversed(range(0,levels)):
             dict_level_mag_correspondence[max_mag/counter] = i
-            counter = counter+1
+            counter = counter*2
         return dict_level_mag_correspondence
 
     def get_bounding_box_around_mask(self,color):
@@ -99,10 +102,9 @@ class Adaptive_MPP():
         min_y = int(np.min(all_y))
         max_y = int(np.max(all_y))
 
-        print(min_x, min_y, max_x, max_y)
         return (min_x, min_y, max_x, max_y)
 
-app = Adaptive_MPP("examples/36724.xml","examples/36724.svs",65535,256, 5)
+app = Adaptive_MPP("examples/36724.xml","examples/36724.svs",16776960,256, 20)
 roi = app.roi
 new_im = Image.fromarray(roi)
 new_im.show()
